@@ -62,6 +62,17 @@ bool isArpResponse(etherHeader *ether)
     return ok;
 }
 
+//get hardware address from arp response
+void processArp(etherHeader *ether, socket *s)
+{
+    arpPacket *arp = (arpPacket*)ether->data;
+    uint8_t i;
+    for (i = 0; i < HW_ADD_LENGTH; i++)
+        s->remoteHwAddress[i] = arp->sourceAddress[i];
+    for (i = 0; i < IP_ADD_LENGTH; i++)
+        s->remoteIpAddress[i] = arp->sourceIp[i];
+}
+
 // Sends an ARP response given the request data
 void sendArpResponse(etherHeader *ether)
 {

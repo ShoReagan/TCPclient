@@ -44,6 +44,7 @@ bool isArpRequest(etherHeader *ether);
 bool isArpResponse(etherHeader *ether);
 void sendArpResponse(etherHeader *ether);
 void sendArpRequest(etherHeader *ether, uint8_t ipFrom[], uint8_t ipTo[]);
+void processArp(etherHeader *ether, socket *s);
 
 #endif
 

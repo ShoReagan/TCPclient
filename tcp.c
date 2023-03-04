@@ -76,6 +76,16 @@ void getTcpMessageSocket(etherHeader *ether, socket *s)
     s->localPort = ntohs(tcp->destPort);
 }
 
+// get sequence number and acknowledgment number 
+void processTCP(etherHeader *ether, socket *s)
+{
+    ipHeader *ip = (ipHeader*)ether->data;
+    uint8_t ipHeaderLength = ip->size * 4;
+    tcpHeader *tcp = (tcpHeader*)((uint8_t*)ip + ipHeaderLength);
+    s->sequenceNumber = ntohs(tcp->sequenceNumber);
+    s->acknowledgementNumber = ntohs(tcp->acknowledgementNumber);
+}
+
 void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[], uint16_t dataSize)
 {
     uint8_t i;
@@ -133,13 +143,20 @@ void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[]
     //set the offset fields
     offsetFieldNum = ((tcpLength / 4) << OFS_SHIFT) | flags; //set the flags and assume data offset is 6 bytes (no options or padding)
     tcp->offsetFields = htons(offsetFieldNum);
+
     //set window size
     tcp->windowSize = htons(1522);
-    if(flags & 0x0002)
-        tcp->sequenceNumber = htons(0);
-    else
-        tcp->sequenceNumber = htons(1);
-    tcp->acknowledgementNumber = htons(0);
+
+    // if(flags & 0x0002)
+    // {
+    //     tcp->sequenceNumber = htons(0);
+    //     tcp->acknowledgementNumber = htons(0);
+    // }
+    // else
+    // {
+        tcp->sequenceNumber = htons(s.sequenceNumber + 1);
+        tcp->acknowledgementNumber = htons(s.acknowledgementNumber + 1); 
+    //}
 
     sum = 0;
     sumIpWords(ip->sourceIp, 8, &sum);
