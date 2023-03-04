@@ -457,7 +457,7 @@ int main(void)
             // Handle ARP response
             if (isArpResponse(data) && PENDING_ARP_RESPONSE)
             {
-                processArp(data, s);
+                processArp(data, &s);
                 state = SEND_SYN;
             }
 

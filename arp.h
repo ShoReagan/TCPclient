@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "eth0.h"
+#include "ip.h"
 
 typedef struct _arpPacket // 28 bytes
 {

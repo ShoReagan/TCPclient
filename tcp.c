@@ -77,7 +77,7 @@ void getTcpMessageSocket(etherHeader *ether, socket *s)
 }
 
 // get sequence number and acknowledgment number 
-void processTCP(etherHeader *ether, socket *s)
+void processTcp(etherHeader *ether, socket *s)
 {
     ipHeader *ip = (ipHeader*)ether->data;
     uint8_t ipHeaderLength = ip->size * 4;
