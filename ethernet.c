@@ -413,7 +413,8 @@ int main(void)
     s.sequenceNumber = 0;
     s.acknowledgementNumber = 0;
 
-//    sendTcpMessage(data, s, 0x0002, NULL, 0);
+    sendTcpMessage(data, s, 0x0002, NULL, 0);
+    sendArpRequest(data, myIp, sendIp);
 
     // Main Loop
     // RTOS and interrupts would greatly improve this code,
