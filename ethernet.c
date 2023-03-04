@@ -383,6 +383,9 @@ int main(void)
     uint8_t sendIp[4] = {192, 168, 1, 1};
     uint8_t sendMac[6] = {124, 194, 198, 69, 94, 248};
 
+    s.localPort = 14000;
+    s.remotePort = 1883;
+
     // Init controller
     initHw();
 
