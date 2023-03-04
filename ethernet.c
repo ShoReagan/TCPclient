@@ -71,6 +71,13 @@
 #define EEPROM_MQTT        7
 #define EEPROM_ERASED      0xFFFFFFFF
 
+// State machine
+#define SEND_ARP 0
+#define PENDING_ARP_RESPONSE 1
+#define SEND_SYN 2
+#define PENDING_SYN_ACK_RESPONSE 3
+#define SEND_ACK 4
+#define ESTABLISHED 5
 bool sendSYN = false;
 
 //-----------------------------------------------------------------------------
@@ -370,7 +377,7 @@ int main(void)
     uint8_t buffer[MAX_PACKET_SIZE];
     etherHeader *data = (etherHeader*) buffer;
     socket s;
-    int sendOnce = 4;
+    uint8_t state = 0;
 
     uint8_t myIp[4] = {192, 168, 1, 113};
     uint8_t sendIp[4] = {192, 168, 1, 1};
@@ -401,19 +408,7 @@ int main(void)
     setPinValue(GREEN_LED, 0);
     waitMicrosecond(100000);
 
-    uint8_t i;
-    for(i = 0; i < 6; i++)
-    {
-        if(i < 4)
-            s.remoteIpAddress[i] = sendIp[i];
-        s.remoteHwAddress[i] = sendMac[i];
-    }
-    s.remotePort = 1883;
-    s.localPort = 7000;
-    s.sequenceNumber = 0;
-    s.acknowledgementNumber = 0;
-
-//    sendTcpMessage(data, s, 0x0002, NULL, 0);
+    sendArpRequest(data, myIp, sendIp);
 
     // Main Loop
     // RTOS and interrupts would greatly improve this code,
@@ -423,10 +418,20 @@ int main(void)
         // Put terminal processing here
         processShell();
 
-        if (sendSYN)
+        if(state == SEND_ARP)
+        {
+            sendArpRequest(data, myIp, sendIp);
+            state = PENDING_ARP_RESPONSE;
+        }
+        else if(state == SEND_SYN)
         {
             sendTcpMessage(data, s, 0x0002, NULL, 0);
-            sendSYN = false;
+            state = PENDING_SYN_ACK_RESPONSE;
+        }
+        else if(state == SEND_ACK)
+        {
+            sendTcpMessage(data, s, 0x0002, NULL, 0);
+            state = ESTABLISHED;
         }
 
 
@@ -447,6 +452,13 @@ int main(void)
             if (isArpRequest(data))
             {
                 sendArpResponse(data);
+            }
+
+            // Handle ARP response
+            if (isArpResponse(data) && PENDING_ARP_RESPONSE)
+            {
+                processArp(data, s);
+                state = SEND_SYN;
             }
 
             // Handle IP datagram
@@ -475,8 +487,12 @@ int main(void)
                     // Handle TCP datagram
                     if (isTcp(data))
                     {
-                        getTcpMessageSocket(data, &s);
-                        sendTcpMessage(data, s, 0x0010, NULL, 0);
+                        processTcp(data, &s);
+                        if(state == PENDING_SYN_ACK_RESPONSE)
+                        {
+                            sendTcpMessage(data, s, 0x0010, NULL, 0);
+                            state = SEND_ACK;
+                        }
                     }
                 }
             }
