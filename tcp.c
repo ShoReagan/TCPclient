@@ -147,16 +147,16 @@ void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[]
     //set window size
     tcp->windowSize = htons(1522);
 
-    // if(flags & 0x0002)
-    // {
-    //     tcp->sequenceNumber = htons(0);
-    //     tcp->acknowledgementNumber = htons(0);
-    // }
-    // else
-    // {
+    if(flags & 0x0002)
+    {
+        tcp->sequenceNumber = htons(0);
+        tcp->acknowledgementNumber = htons(0);
+    }
+    else
+    {
         tcp->sequenceNumber = htons(s.sequenceNumber + 1);
         tcp->acknowledgementNumber = htons(s.acknowledgementNumber + 1); 
-    //}
+    }
 
     sum = 0;
     sumIpWords(ip->sourceIp, 8, &sum);
