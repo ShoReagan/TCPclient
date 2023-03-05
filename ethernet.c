@@ -385,6 +385,8 @@ int main(void)
 
     s.localPort = 14000;
     s.remotePort = 1883;
+    s.acknowledgementNumber = 0;
+    s.sequenceNumber = 0;
 
     // Init controller
     initHw();
@@ -458,7 +460,7 @@ int main(void)
             }
 
             // Handle ARP response
-            if (isArpResponse(data) && PENDING_ARP_RESPONSE)
+            if (isArpResponse(data) && state == PENDING_ARP_RESPONSE)
             {
                 processArp(data, &s);
                 state = SEND_SYN;
@@ -490,9 +492,11 @@ int main(void)
                     // Handle TCP datagram
                     if (isTcp(data))
                     {
-                        processTcp(data, &s);
                         if(state == PENDING_SYN_ACK_RESPONSE)
                         {
+
+                            processTcp(data, &s);
+
                             sendTcpMessage(data, s, 0x0010, NULL, 0);
                             state = SEND_ACK;
                         }

@@ -82,8 +82,8 @@ void processTcp(etherHeader *ether, socket *s)
     ipHeader *ip = (ipHeader*)ether->data;
     uint8_t ipHeaderLength = ip->size * 4;
     tcpHeader *tcp = (tcpHeader*)((uint8_t*)ip + ipHeaderLength);
-    s->sequenceNumber = ntohs(tcp->sequenceNumber);
-    s->acknowledgementNumber = ntohs(tcp->acknowledgementNumber);
+    s->sequenceNumber = ntohs(tcp->sequenceNumber + 1);
+    s->acknowledgementNumber = ntohs(tcp->acknowledgementNumber + 1);
 }
 
 void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[], uint16_t dataSize)
@@ -147,16 +147,16 @@ void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[]
     //set window size
     tcp->windowSize = htons(1522);
 
-    if(flags & 0x0002)
-    {
-        tcp->sequenceNumber = htons(0);
-        tcp->acknowledgementNumber = htons(0);
-    }
-    else
-    {
-        tcp->sequenceNumber = htons(s.sequenceNumber + 1);
-        tcp->acknowledgementNumber = htons(s.acknowledgementNumber + 1); 
-    }
+//    if(flags & 0x0002)
+//    {
+//        tcp->sequenceNumber = htons(0);
+//        tcp->acknowledgementNumber = htons(0);
+//    }
+//    else
+//    {
+        tcp->sequenceNumber = htons(s.sequenceNumber);
+        tcp->acknowledgementNumber = htons(s.acknowledgementNumber);
+    //}
 
     sum = 0;
     sumIpWords(ip->sourceIp, 8, &sum);
