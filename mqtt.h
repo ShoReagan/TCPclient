@@ -35,5 +35,7 @@ typedef struct _mqttHeader // 20 or more bytes
 // Subroutines
 //-----------------------------------------------------------------------------
 
+void sendMqttMessage(etherHeader *ether, socket s, uint8_t type);
+
 #endif
 
