@@ -87,6 +87,9 @@ uint16_t htons(uint16_t value);
 uint32_t htonl(uint32_t value);
 #define ntohl htonl
 
+uint8_t htonb(uint8_t value);
+#define ntohb
+
 // Packets
 #define IP_ADD_LENGTH 4
 #define HW_ADD_LENGTH 6

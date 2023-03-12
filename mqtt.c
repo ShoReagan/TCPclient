@@ -107,7 +107,7 @@ void sendMqttMessage(etherHeader *ether, socket s, uint8_t type)
     mqttHeader* mqtt = (mqttHeader*)((uint8_t*)tcp + (tcpLength * 4));
     uint8_t tempHeader[10] = {0x00, 0x04, 0x4D, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x3C};
     uint8_t tempPayload[7] = {0x00, 0x05, 0x50, 0x4D, 0x52, 0x53, 0x54};
-    mqtt->controlHeader = 0x10;
+    mqtt->controlHeader = 0xAA;
     mqtt->remainingLength = 0x11;
     mqtt->controlHeader = tempHeader;
     mqtt->payload = tempPayload;

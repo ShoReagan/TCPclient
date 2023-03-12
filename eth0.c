@@ -472,6 +472,11 @@ bool putEtherPacket(etherHeader *ether, uint16_t size)
 }
 
 // Converts from host to network order and vice versa
+uint8_t htonb(uint8_t value)
+{
+    return ((value & 0xF0) >> 4) + ((value & 0x0F) << 4);
+}
+
 uint16_t htons(uint16_t value)
 {
     return ((value & 0xFF00) >> 8) + ((value & 0x00FF) << 8);
