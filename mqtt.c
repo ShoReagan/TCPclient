@@ -42,6 +42,8 @@ void sendMqttMessage(etherHeader *ether, socket s, uint8_t type)
     uint16_t offsetFieldNum = 0;
     uint8_t localHwAddress[6];
     uint8_t localIpAddress[4];
+    uint8_t *copyData1;
+    uint8_t *copyData2;
 
     uint16_t buffer1;
 
@@ -104,13 +106,22 @@ void sendMqttMessage(etherHeader *ether, socket s, uint8_t type)
     tcp->checksum = getIpChecksum(sum);
 
     //mqtt stuff
-    mqttHeader* mqtt = (mqttHeader*)((uint8_t*)tcp + (tcpLength * 4));
+    mqttHeader* mqtt = (mqttHeader*)tcp->data;
     uint8_t tempHeader[10] = {0x00, 0x04, 0x4D, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x3C};
     uint8_t tempPayload[7] = {0x00, 0x05, 0x50, 0x4D, 0x52, 0x53, 0x54};
-    mqtt->controlHeader = 0xAA;
+=======
+    
+    mqtt->controlHeader = 0x10;
+>>>>>>> 212714e4b983c788b40c50d8328ed22bdc7d2779
     mqtt->remainingLength = 0x11;
-    mqtt->controlHeader = tempHeader;
-    mqtt->payload = tempPayload;
+
+    copyData1 = mqtt->controlHeader;
+    for (i = 0; i < 10; i++)
+        copyData1[i] = tempHeader[i];
+
+    copyData2 = mqtt->payload;
+    for (i = 0; i < 10; i++)
+        copyData2[i] = tempPayload[i];
 
     // send packet with size = ether + tcp hdr + ip header + tcp_size
     putEtherPacket(ether, sizeof(etherHeader) + ipHeaderLength + tcpLength + (mqtt->remainingLength + 2));
