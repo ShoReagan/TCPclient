@@ -23,6 +23,14 @@
 #include <stdbool.h>
 #include "tcp.h"
 
+typedef struct _mqttHeader // 20 or more bytes
+{
+  uint8_t controlHeader;
+  uint8_t remainingLength;
+  uint8_t*  variableHeader;
+  uint8_t* payload;
+} mqttHeader;
+
 //-----------------------------------------------------------------------------
 // Subroutines
 //-----------------------------------------------------------------------------

@@ -77,8 +77,12 @@
 #define SEND_SYN 2
 #define PENDING_SYN_ACK_RESPONSE 3
 #define SEND_ACK 4
-#define ESTABLISHED 5
+#define PENDING_FIN_ACK_RESPONSE 5
+#define SEND_FIN_ACK 6
+#define CLOSED_CONNECTION 7
+
 bool sendSYN = false;
+bool sendFINACK = false;
 
 //-----------------------------------------------------------------------------
 // Subroutines                
@@ -378,10 +382,16 @@ int main(void)
     etherHeader *data = (etherHeader*) buffer;
     socket s;
     uint8_t state = 0;
+    uint16_t flags = 0;
 
     uint8_t myIp[4] = {192, 168, 1, 113};
     uint8_t sendIp[4] = {192, 168, 1, 1};
     uint8_t sendMac[6] = {124, 194, 198, 69, 94, 248};
+
+    s.localPort = 14000;
+    s.remotePort = 1883;
+    s.acknowledgementNumber = 0;
+    s.sequenceNumber = 0;
 
     // Init controller
     initHw();
@@ -430,8 +440,8 @@ int main(void)
         }
         else if(state == SEND_ACK)
         {
-            sendTcpMessage(data, s, 0x0002, NULL, 0);
-            state = ESTABLISHED;
+            //sendTcpMessage(data, s, 0x0010, NULL, 0);
+            state = PENDING_FIN_ACK_RESPONSE;
         }
 
 
@@ -455,9 +465,9 @@ int main(void)
             }
 
             // Handle ARP response
-            if (isArpResponse(data) && PENDING_ARP_RESPONSE)
+            if (isArpResponse(data) && state == PENDING_ARP_RESPONSE)
             {
-                processArp(data, s);
+                processArp(data, &s);
                 state = SEND_SYN;
             }
 
@@ -487,11 +497,28 @@ int main(void)
                     // Handle TCP datagram
                     if (isTcp(data))
                     {
-                        processTcp(data, &s);
-                        if(state == PENDING_SYN_ACK_RESPONSE)
+                        processTcp(data, &s, &flags);
+                        if(flags & 0x0010 && flags & 0x0002) //syn + ack
                         {
                             sendTcpMessage(data, s, 0x0010, NULL, 0);
                             state = SEND_ACK;
+
+//                            mqttHeader mqtt;
+//                            uint8_t tempHeader[10] = {0x00, 0x04, 0x4D, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x3C};
+//                            uint8_t tempPayload[7] = {0x00, 0x05, 0x50, 0x4D, 0x52, 0x53, 0x54};
+                            uint8_t temp4[19] = {0x10, 0x11, 0x00, 0x04, 0x4D, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x3C, 0x00, 0x05, 0x50, 0x51, 0x52, 0x53, 0x54};
+//                            mqtt.controlHeader = 0x10;
+//                            mqtt.remainingLength = 0x11;
+//                            mqtt.variableHeader = tempHeader;
+//                            mqtt.payload = tempPayload;
+
+                            sendTcpMessage(data, s, 0x0018, temp4, 19);
+
+                        }
+                        else if(flags & 0x0010 && flags & 0x0001)
+                        {
+                            sendTcpMessage(data, s, 0x0011, NULL, 0);
+                            state = CLOSED_CONNECTION;
                         }
                     }
                 }
