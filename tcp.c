@@ -82,8 +82,8 @@ void processTCP(etherHeader *ether, socket *s)
     ipHeader *ip = (ipHeader*)ether->data;
     uint8_t ipHeaderLength = ip->size * 4;
     tcpHeader *tcp = (tcpHeader*)((uint8_t*)ip + ipHeaderLength);
-    s->sequenceNumber = ntohs(tcp->sequenceNumber);
-    s->acknowledgementNumber = ntohs(tcp->acknowledgementNumber);
+    s->sequenceNumber = ntohs(tcp->sequenceNumber + 1);
+    s->acknowledgementNumber = ntohs(tcp->acknowledgementNumber + 1);
 }
 
 void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[], uint16_t dataSize)
@@ -154,8 +154,8 @@ void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[]
     }
     else
     {
-        tcp->sequenceNumber = htons(s.sequenceNumber + 1);
-        tcp->acknowledgementNumber = htons(s.acknowledgementNumber + 1); 
+        tcp->sequenceNumber = htons(s.sequenceNumber);
+        tcp->acknowledgementNumber = htons(s.acknowledgementNumber); 
     }
 
     sum = 0;
