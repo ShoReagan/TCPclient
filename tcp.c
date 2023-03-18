@@ -82,7 +82,7 @@ void getTcpMessageSocket(etherHeader *ether, socket *s)
 // get sequence number and acknowledgment number 
 void processTcp(etherHeader *ether, socket *s, uint16_t *flags, bool getFlagsOnly)
 {
-    char buffer1[3];
+    char buffer1[10];
     ipHeader *ip = (ipHeader*)ether->data;
     uint8_t ipHeaderLength = ip->size * 4;
     tcpHeader *tcp = (tcpHeader*)((uint8_t*)ip + ipHeaderLength);
@@ -96,7 +96,7 @@ void processTcp(etherHeader *ether, socket *s, uint16_t *flags, bool getFlagsOnl
     s->sequenceNumber = ntohl(tcp->acknowledgementNumber);
     if(*flags & 0x0010 && *flags & 0x0008)
         s->acknowledgementNumber += (mqtt->remainingLength + 2);
-    snprintf(buffer1, 3, "%d", sizeof(tcp->data));
+    snprintf(buffer1, 10, "%d", sizeof(tcp->data));
     putsUart0(buffer1);
 
 }

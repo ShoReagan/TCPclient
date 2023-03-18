@@ -541,25 +541,26 @@ int main(void)
                     // Handle TCP datagram
                     if (isTcp(data))
                     {
+                        processTcp(data, &s, &flags, true);
+                        if(flags & 0x0010 && flags & 0x0002) //syn + ack
+                        {
                             processTcp(data, &s, &flags, false);
-                            if(flags & 0x0010 && flags & 0x0002) //syn + ack
-                            {
-                                sendTcpMessage(data, s, 0x0010, NULL, 0);
-                                state = SEND_ACK;
+                            sendTcpMessage(data, s, 0x0010, NULL, 0);
+                            state = SEND_ACK;
 
-                            }
-                            else if(flags & 0x0010 && flags & 0x0001)
-                            {
-                                sendTcpMessage(data, s, 0x0011, NULL, 0);
-                                state = CLOSED_CONNECTION;
-                            }
-                            else if(flags & 0x0010 && flags & 0x0008 && state == 8)
-                            {
-                                sendTcpMessage(data, s, 0x0010, NULL, 0);
-                                state = 10;
-                            }
-                            else
-                                sendTcpMessage(data, s, 0x0010, NULL, 0);
+                        }
+                        else if(flags & 0x0010 && flags & 0x0001)
+                        {
+                            processTcp(data, &s, &flags, false);
+                            sendTcpMessage(data, s, 0x0011, NULL, 0);
+                            state = CLOSED_CONNECTION;
+                        }
+                        else if(flags & 0x0010 && flags & 0x0008 && state == SEND_CONNECT)
+                        {
+                            processTcp(data, &s, &flags, false);
+                            sendTcpMessage(data, s, 0x0010, NULL, 0);
+                            state = 16;
+                        }
                     }
                 }
             }
