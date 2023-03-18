@@ -20,12 +20,15 @@
 #include <string.h>
 #include "tcp.h"
 #include "timer.h"
+#include "mqtt.h"
 
 #include "uart0.h"
 
 // ------------------------------------------------------------------------------
 //  Globals
 // ------------------------------------------------------------------------------
+
+uint32_t raw;
 
 // ------------------------------------------------------------------------------
 //  Structures
@@ -77,14 +80,25 @@ void getTcpMessageSocket(etherHeader *ether, socket *s)
 }
 
 // get sequence number and acknowledgment number 
-void processTcp(etherHeader *ether, socket *s, uint16_t *flags)
+void processTcp(etherHeader *ether, socket *s, uint16_t *flags, bool getFlagsOnly)
 {
+    char buffer1[3];
     ipHeader *ip = (ipHeader*)ether->data;
     uint8_t ipHeaderLength = ip->size * 4;
     tcpHeader *tcp = (tcpHeader*)((uint8_t*)ip + ipHeaderLength);
+    mqttHeader *mqtt = (mqttHeader*)((uint8_t*)tcp->data);
+
     *flags = ntohs(tcp->offsetFields);
+    if(*flags & SYN && *flags & ACK)
+    {
+        s->acknowledgementNumber = ntohl(tcp->sequenceNumber) + 1;
+    }
     s->sequenceNumber = ntohl(tcp->acknowledgementNumber);
-    s->acknowledgementNumber = ntohl(tcp->sequenceNumber) + 1;
+    if(*flags & 0x0010 && *flags & 0x0008)
+        s->acknowledgementNumber += (mqtt->remainingLength + 2);
+    snprintf(buffer1, 3, "%d", sizeof(tcp->data));
+    putsUart0(buffer1);
+
 }
 
 void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[], uint16_t dataSize)
@@ -120,7 +134,7 @@ void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[]
     ip->ttl = 128;
     ip->protocol = PROTOCOL_TCP;
     ip->headerChecksum = 0;
-     for (i = 0; i < IP_ADD_LENGTH; i++)
+    for (i = 0; i < IP_ADD_LENGTH; i++)
     {
         ip->destIp[i] = s.remoteIpAddress[i];
         ip->sourceIp[i] = localIpAddress[i];
@@ -142,7 +156,7 @@ void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[]
         copyData[i] = data[i];
 
     //set the offset fields
-    offsetFieldNum = ((tcpLength / 4) << OFS_SHIFT) | flags; //set the flags and assume data offset is 6 bytes (no options or padding)
+    offsetFieldNum = (0x05 << OFS_SHIFT) | flags;
     tcp->offsetFields = htons(offsetFieldNum);
 
     //set window size

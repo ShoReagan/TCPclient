@@ -80,9 +80,13 @@
 #define PENDING_FIN_ACK_RESPONSE 5
 #define SEND_FIN_ACK 6
 #define CLOSED_CONNECTION 7
+#define SEND_CONNECT 8
+#define SEND_SUB 9
+#define SEND_PUB 10
 
 bool sendSYN = false;
 bool sendFINACK = false;
+uint8_t state = 0;
 
 //-----------------------------------------------------------------------------
 // Subroutines                
@@ -235,6 +239,9 @@ void readConfiguration()
 #define MAX_CHARS 80
 char strInput[MAX_CHARS+1];
 char* token;
+char token3[80];
+char token2[80];
+char token1[80];
 uint8_t count = 0;
 
 uint8_t asciiToUint8(const char str[])
@@ -275,6 +282,27 @@ void processShell()
             if (strcmp(token, "ifconfig") == 0)
             {
                 displayConnectionInfo();
+            }
+            if (strcmp(token, "connect") == 0)
+            {
+                state = SEND_CONNECT;
+            }
+            if (strcmp(token, "publish") == 0)
+            {
+                strcpy(token3, strtok(NULL, " "));
+                strcpy(token2, strtok(NULL, " "));
+
+                snprintf(token1, strlen(token3) + strlen(token2) + 1 + 1, "%s%s%s", token3, "-", token2);
+
+                putsUart0(token1);
+
+
+                state = SEND_PUB;
+            }
+            if (strcmp(token, "subscribe") == 0)
+            {
+                strcpy(token1, strtok(NULL, " "));
+                state = SEND_SUB;
             }
             if (strcmp(token, "sendSYN") == 0)
             {
@@ -377,12 +405,11 @@ void processShell()
 int main(void)
 {
     uint8_t* udpData;
-    //uint8_t* tcpData;
     uint8_t buffer[MAX_PACKET_SIZE];
     etherHeader *data = (etherHeader*) buffer;
     socket s;
-    uint8_t state = 0;
     uint16_t flags = 0;
+    uint8_t headerFlags;
 
     uint8_t myIp[4] = {192, 168, 1, 113};
     uint8_t sendIp[4] = {192, 168, 1, 1};
@@ -444,6 +471,23 @@ int main(void)
             state = PENDING_FIN_ACK_RESPONSE;
         }
 
+        if(state == SEND_CONNECT)
+        {
+            uint8_t buffer3[17] = {0x00, 0x04, 0x4D, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x3C, 0x00, 0x05, 0x50, 0x51, 0x52, 0x53, 0x54};
+            sendMqttMessage(data, s, buffer3, 7, 1);
+            state = 16;
+        }
+        if(state == SEND_PUB)
+        {
+            sendMqttMessage(data, s, token1, strlen(token1) - 1, 2);
+            state = 16;
+        }
+        if(state == SEND_SUB)
+        {
+            sendMqttMessage(data, s, token1, strlen(token1), 3);
+            state = 16;
+        }
+
 
         // Packet processing
         if (isEtherDataAvailable())
@@ -497,29 +541,25 @@ int main(void)
                     // Handle TCP datagram
                     if (isTcp(data))
                     {
-                        processTcp(data, &s, &flags);
-                        if(flags & 0x0010 && flags & 0x0002) //syn + ack
-                        {
-                            sendTcpMessage(data, s, 0x0010, NULL, 0);
-                            state = SEND_ACK;
+                            processTcp(data, &s, &flags, false);
+                            if(flags & 0x0010 && flags & 0x0002) //syn + ack
+                            {
+                                sendTcpMessage(data, s, 0x0010, NULL, 0);
+                                state = SEND_ACK;
 
-//                            mqttHeader mqtt;
-//                            uint8_t tempHeader[10] = {0x00, 0x04, 0x4D, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x3C};
-//                            uint8_t tempPayload[7] = {0x00, 0x05, 0x50, 0x4D, 0x52, 0x53, 0x54};
-                            //uint8_t temp4[19] = {0x10, 0x11, 0x00, 0x04, 0x4D, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x3C, 0x00, 0x05, 0x50, 0x51, 0x52, 0x53, 0x54};
-//                            mqtt.controlHeader = 0x10;
-//                            mqtt.remainingLength = 0x11;
-//                            mqtt.variableHeader = tempHeader;
-//                            mqtt.payload = tempPayload;
-
-                            sendMqttMessage(data, s, 1);
-
-                        }
-                        else if(flags & 0x0010 && flags & 0x0001)
-                        {
-                            sendTcpMessage(data, s, 0x0011, NULL, 0);
-                            state = CLOSED_CONNECTION;
-                        }
+                            }
+                            else if(flags & 0x0010 && flags & 0x0001)
+                            {
+                                sendTcpMessage(data, s, 0x0011, NULL, 0);
+                                state = CLOSED_CONNECTION;
+                            }
+                            else if(flags & 0x0010 && flags & 0x0008 && state == 8)
+                            {
+                                sendTcpMessage(data, s, 0x0010, NULL, 0);
+                                state = 10;
+                            }
+                            else
+                                sendTcpMessage(data, s, 0x0010, NULL, 0);
                     }
                 }
             }

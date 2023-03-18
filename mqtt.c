@@ -20,6 +20,7 @@
 #include <string.h>
 #include "mqtt.h"
 #include "timer.h"
+#include "uart0.h"
 
 // ------------------------------------------------------------------------------
 //  Globals
@@ -33,7 +34,17 @@
 // Subroutines
 //-----------------------------------------------------------------------------
 
-void sendMqttMessage(etherHeader *ether, socket s, uint8_t type)
+void processMqtt(etherHeader *ether, socket *s, uint8_t *buffer)
+{
+    ipHeader *ip = (ipHeader*)ether->data;
+    uint8_t ipHeaderLength = ip->size * 4;
+    tcpHeader *tcp = (tcpHeader*)((uint8_t*)ip + ipHeaderLength);
+    mqttHeader *mqtt = (mqttHeader*)((uint8_t*)tcp->data);
+
+    *buffer = mqtt->controlHeader;
+}
+
+void sendMqttMessage(etherHeader *ether, socket s, uint8_t str[], uint8_t topicLen, uint8_t type)
 {
     uint8_t i;
     uint32_t sum;
@@ -43,8 +54,6 @@ void sendMqttMessage(etherHeader *ether, socket s, uint8_t type)
     uint8_t localHwAddress[6];
     uint8_t localIpAddress[4];
     uint8_t *copyData1;
-    uint8_t *copyData2;
-
     uint16_t buffer1;
 
     // Ether frame
@@ -76,16 +85,70 @@ void sendMqttMessage(etherHeader *ether, socket s, uint8_t type)
     // TCP header
     tcpHeader* tcp = (tcpHeader*)((uint8_t*)ip + (ip->size * 4));
 
+
+    //mqtt stuff
+    mqttHeader* mqtt = (mqttHeader*)tcp->data;
+
+//    uint8_t publish[10] = {0x00, 0x03, 0x41, 0x42, 0x43, 0x68, 0x65, 0x6C, 0x6C, 0x6E};
+//    uint8_t subscribe[8] = {0x00, 0x01, 0x00, 0x03, 0x41, 0x42, 0x43, 0x00};
+//    uint8_t connect[17] = {0x00, 0x04, 0x4D, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x3C, 0x00, 0x05, 0x50, 0x51, 0x52, 0x53, 0x54};
+
+    copyData1 = mqtt->variableStuff;
+
+    if(type == CONNECT)
+    {
+        mqtt->controlHeader = 0x10;
+        mqtt->remainingLength = 0x11;
+
+        for (i = 0; i < mqtt->remainingLength; i++)
+            copyData1[i] = str[i];
+    }
+    else if(type == PUBLISH)
+    {
+        mqtt->controlHeader = 0x31;
+        mqtt->remainingLength = 2 + topicLen;
+        uint8_t temp = 0;
+
+        copyData1[0] = 0;
+
+        for(i = 2; i < topicLen + 3; i++)
+        {
+            if(str[i - 2] == '-')
+            {
+                copyData1[1] = i - 2;
+                temp = 1;
+            }
+            else
+                copyData1[i - temp] = str[i - 2];
+        }
+    }
+    else if(type == SUBSCRIBE)
+    {
+        mqtt->controlHeader = 0x82;
+        mqtt->remainingLength = 5 + topicLen;
+
+        copyData1[0] = 0;
+        copyData1[1] = 1;
+        copyData1[2] = 0;
+        copyData1[3] = topicLen;
+
+        for (i = 0; i < topicLen; i++)
+                copyData1[i + 4] = str[i];
+
+        copyData1[i + 4] = 0;
+    }
+
+
     tcp->sourcePort = htons(s.localPort);
     tcp->destPort = htons(s.remotePort);
     // adjust lengths
-    tcpLength = sizeof(tcpHeader);
+    tcpLength = sizeof(tcpHeader) + mqtt->remainingLength + 2;
     ip->length = htons(ipHeaderLength + tcpLength);
     // 32-bit sum over ip header
     calcIpChecksum(ip);
 
     //set the offset fields
-    offsetFieldNum = ((tcpLength / 4) << OFS_SHIFT) | PSH | ACK; //set the flags and assume data offset is 6 bytes (no options or padding)
+    offsetFieldNum = ((0x5) << OFS_SHIFT) | PSH | ACK;
     tcp->offsetFields = htons(offsetFieldNum);
 
     //set window size
@@ -105,26 +168,8 @@ void sendMqttMessage(etherHeader *ether, socket s, uint8_t type)
     sumIpWords(tcp, tcpLength, &sum);
     tcp->checksum = getIpChecksum(sum);
 
-    //mqtt stuff
-    mqttHeader* mqtt = (mqttHeader*)tcp->data;
-    uint8_t tempHeader[10] = {0x00, 0x04, 0x4D, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x3C};
-    uint8_t tempPayload[7] = {0x00, 0x05, 0x50, 0x4D, 0x52, 0x53, 0x54};
-=======
-    
-    mqtt->controlHeader = 0x10;
->>>>>>> 212714e4b983c788b40c50d8328ed22bdc7d2779
-    mqtt->remainingLength = 0x11;
-
-    copyData1 = mqtt->controlHeader;
-    for (i = 0; i < 10; i++)
-        copyData1[i] = tempHeader[i];
-
-    copyData2 = mqtt->payload;
-    for (i = 0; i < 10; i++)
-        copyData2[i] = tempPayload[i];
-
     // send packet with size = ether + tcp hdr + ip header + tcp_size
-    putEtherPacket(ether, sizeof(etherHeader) + ipHeaderLength + tcpLength + (mqtt->remainingLength + 2));
+    putEtherPacket(ether, sizeof(etherHeader) + ipHeaderLength + tcpLength);
 }
 
 
