@@ -76,7 +76,7 @@ bool isTcp(etherHeader *ether);
 // TODO: Add functions here
 void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[], uint16_t dataSize);
 void getTcpMessageSocket(etherHeader *ether, socket *s);
-void processTcp(etherHeader *ether, socket *s, uint16_t *flags, bool getFlagsOnly);
+void processTcp(etherHeader *ether, socket *s, uint16_t *flags, uint8_t *state);
 
 #endif
 

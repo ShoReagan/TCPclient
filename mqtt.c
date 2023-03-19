@@ -105,7 +105,7 @@ void sendMqttMessage(etherHeader *ether, socket s, uint8_t str[], uint8_t topicL
     }
     else if(type == PUBLISH)
     {
-        mqtt->controlHeader = 0x31;
+        mqtt->controlHeader = 0x30;
         mqtt->remainingLength = 2 + topicLen;
         uint8_t temp = 0;
 

@@ -285,6 +285,10 @@ void processShell()
             {
                 displayConnectionInfo();
             }
+            if (strcmp(token, "fin") == 0)
+            {
+                state = SEND_FIN_ACK;
+            }
             if (strcmp(token, "connect") == 0)
             {
                 state = SEND_CONNECT;
@@ -489,8 +493,8 @@ int main(void)
         }
         if(state == SEND_FIN_ACK)
         {
-            //state = SEND_FIN_ACK;
-            sendMqttMessage(data, s, token1, strlen(token1), 3);
+            state = PENDING_FIN_ACK_RESPONSE;
+            sendTcpMessage(data, s, 0x0011, NULL, 0);
         }
 
 
@@ -546,7 +550,7 @@ int main(void)
                     // Handle TCP datagram
                     if (isTcp(data))
                     {
-                        processTcp(data, &s, &flags, false);
+                        processTcp(data, &s, &flags, &state);
                         if(flags & 0x0010 && flags & 0x0002) //syn + ack
                         {
                             //processTcp(data, &s, &flags, false);
@@ -554,27 +558,22 @@ int main(void)
                             state = SEND_ACK;
 
                         }
-                        else if(flags & 0x0010 && flags & 0x0001 && state != SEND_FIN_ACK)
+                        else if(flags & 0x0010 && flags & 0x0001 && state != PENDING_FIN_ACK_RESPONSE)
                         {
                             //processTcp(data, &s, &flags, false);
                             sendTcpMessage(data, s, 0x0011, NULL, 0);
-                            state = CLOSED_CONNECTION;
+                            state = 16;
                         }
-                        else if(flags & 0x0010 && flags & 0x0008 && state == CONNECT_ACK)
+                        else if(flags & 0x0010 && flags & 0x0008 && (state == CONNECT_ACK || state == SUB_ACK))
                         {
                             //processTcp(data, &s, &flags, false);
                             sendTcpMessage(data, s, 0x0010, NULL, 0);
                             state = 16;
                         }
-                        else if(flags & 0x0010 && flags & 0x0008 && state == SUB_ACK)
-                        {
-                            sendMqttMessage(data, s, NULL, 0, 4);
-                            state = 16;
-                        }
-                        else if(flags & 0x0010 && flags & 0x0001 && state == SEND_FIN_ACK)
+                        else if(flags & 0x0010 && flags & 0x0001 && state == PENDING_FIN_ACK_RESPONSE)
                         {
                             sendTcpMessage(data, s, 0x0010, NULL, 0);
-                            state = CLOSED_CONNECTION;
+                            state = 16;
                         }
                     }
                 }
