@@ -137,6 +137,13 @@ void sendMqttMessage(etherHeader *ether, socket s, uint8_t str[], uint8_t topicL
 
         copyData1[i + 4] = 0;
     }
+    else if(SUBACK)
+    {
+        mqtt->controlHeader = 0x40;
+        mqtt->remainingLength = 2;
+        copyData1[0] = 0;
+        copyData1[1] = 1;
+    }
 
 
     tcp->sourcePort = htons(s.localPort);

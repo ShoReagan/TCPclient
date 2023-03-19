@@ -557,10 +557,15 @@ int main(void)
                             sendTcpMessage(data, s, 0x0011, NULL, 0);
                             state = CLOSED_CONNECTION;
                         }
-                        else if(flags & 0x0010 && flags & 0x0008 && (state == CONNECT_ACK || state == SUB_ACK))
+                        else if(flags & 0x0010 && flags & 0x0008 && state == CONNECT_ACK)
                         {
                             //processTcp(data, &s, &flags, false);
                             sendTcpMessage(data, s, 0x0010, NULL, 0);
+                            state = 16;
+                        }
+                        else if(flags & 0x0010 && flags & 0x0008 && state == SUB_ACK)
+                        {
+                            sendMqttMessage(data, s, NULL, 0, 4);
                             state = 16;
                         }
                     }
