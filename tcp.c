@@ -105,6 +105,8 @@ void processTcp(etherHeader *ether, socket *s, uint16_t *flags,  uint8_t *state)
             uint8_t size = mqtt->variableStuff[1];
             for(i = 2 + size; i < mqtt->remainingLength; i++)
                 buffer1[i - (2 + size)] = mqtt->variableStuff[i];
+            buffer1[i + 1] = '\n';
+            buffer1[i + 2] = '\0';
             putsUart0(buffer1);
         }
     }
@@ -189,12 +191,5 @@ void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[]
     putEtherPacket(ether, sizeof(etherHeader) + ipHeaderLength + tcpLength);
 }
 
-//window size is 1500 bytes, or 1 frame
-//data offset is the number of bytes until data
-//data offset and flags are in offset fields
-//sequence number is random but should set to 0 for debugging when initial tcp message is sent
-//first tcp message has the syn flag set without the ack flag set, set the sequence number in the socket at this time
-//increment sequence number by n every time a message is sent, where n is the number of bytes in the message
-//ack number is next expected sequence number
 
 

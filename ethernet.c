@@ -303,12 +303,7 @@ void processShell()
             {
                 strcpy(token3, strtok(NULL, " "));
                 strcpy(token2, strtok(NULL, " "));
-
                 snprintf(token1, strlen(token3) + strlen(token2) + 1 + 1, "%s%s%s", token3, "-", token2);
-
-                putsUart0(token1);
-
-
                 state = SEND_PUB;
             }
             if (strcmp(token, "subscribe") == 0)
