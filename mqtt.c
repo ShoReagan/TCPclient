@@ -137,12 +137,23 @@ void sendMqttMessage(etherHeader *ether, socket s, uint8_t str[], uint8_t topicL
 
         copyData1[i + 4] = 0;
     }
-    else if(SUBACK)
+    else if(type == UNSUBSCRIBE)
     {
-        mqtt->controlHeader = 0x40;
-        mqtt->remainingLength = 2;
+        mqtt->controlHeader = 0x42;
+        mqtt->remainingLength = 4 + topicLen;
+
         copyData1[0] = 0;
         copyData1[1] = 1;
+        copyData1[2] = 0;
+        copyData1[3] = topicLen;
+
+        for (i = 0; i < topicLen; i++)
+                copyData1[i + 4] = str[i];
+    }
+    else if(type == DISCONNECT)
+    {
+        mqtt->controlHeader = 0xE0;
+        mqtt->remainingLength = 0;
     }
 
 

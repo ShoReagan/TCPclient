@@ -26,7 +26,8 @@
 #define CONNECT 1
 #define PUBLISH 2
 #define SUBSCRIBE 3
-#define SUBACK 4
+#define UNSUBSCRIBE 4
+#define DISCONNECT 5
 
 typedef struct _mqttHeader // 20 or more bytes
 {

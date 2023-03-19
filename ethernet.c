@@ -85,6 +85,8 @@
 #define SEND_PUB 10
 #define CONNECT_ACK 11
 #define SUB_ACK 12
+#define SEND_DISCONNECT 13
+#define SEND_UNSUB 14
 
 bool sendSYN = false;
 bool sendFINACK = false;
@@ -289,6 +291,10 @@ void processShell()
             {
                 state = SEND_FIN_ACK;
             }
+            if (strcmp(token, "disconnect") == 0)
+            {
+                state = SEND_DISCONNECT;
+            }
             if (strcmp(token, "connect") == 0)
             {
                 state = SEND_CONNECT;
@@ -306,6 +312,11 @@ void processShell()
                 state = SEND_PUB;
             }
             if (strcmp(token, "subscribe") == 0)
+            {
+                strcpy(token1, strtok(NULL, " "));
+                state = SEND_SUB;
+            }
+            if (strcmp(token, "unsubscribe") == 0)
             {
                 strcpy(token1, strtok(NULL, " "));
                 state = SEND_SUB;
@@ -490,6 +501,16 @@ int main(void)
         {
             state = SUB_ACK;
             sendMqttMessage(data, s, token1, strlen(token1), 3);
+        }
+        if(state == SEND_UNSUB)
+        {
+            state = SUB_ACK;
+            sendMqttMessage(data, s, token1, strlen(token1), 4);
+        }
+        if(state == SEND_DISCONNECT)
+        {
+            state = 16;
+            sendMqttMessage(data, s, NULL, 0, 5);
         }
         if(state == SEND_FIN_ACK)
         {
