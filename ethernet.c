@@ -91,6 +91,8 @@
 bool sendSYN = false;
 bool sendFINACK = false;
 uint8_t state = 0;
+bool connected = false;
+bool established = false;
 
 //-----------------------------------------------------------------------------
 // Subroutines                
@@ -319,6 +321,19 @@ void processShell()
             if (strcmp(token, "sendSYN") == 0)
             {
                 sendSYN = true;
+            }
+            if (strcmp(token, "state") == 0)
+            {
+                if(established)
+                    strcpy(token2, "TCP: Established\n");
+                else
+                    strcpy(token2, "TCP: Not Established\n");
+                if(connected)
+                    strcpy(token3, "TCP: Connected\n");
+                else
+                    strcpy(token3, "TCP: Disconnected\n");
+                snprintf(token1, strlen(token3) + strlen(token2), "%s%s", token3, token2);
+                putsUart0(token1);
             }
             if (strcmp(token, "reboot") == 0)
             {
@@ -569,26 +584,24 @@ int main(void)
                         processTcp(data, &s, &flags, &state);
                         if(flags & 0x0010 && flags & 0x0002) //syn + ack
                         {
-                            //processTcp(data, &s, &flags, false);
                             sendTcpMessage(data, s, 0x0010, NULL, 0);
                             state = SEND_ACK;
-
-                        }
-                        else if(flags & 0x0010 && flags & 0x0001 && state != PENDING_FIN_ACK_RESPONSE)
-                        {
-                            //processTcp(data, &s, &flags, false);
-                            sendTcpMessage(data, s, 0x0011, NULL, 0);
-                            state = 16;
+                            established = true;
                         }
                         else if(flags & 0x0010 && flags & 0x0008 && (state == CONNECT_ACK || state == SUB_ACK))
                         {
-                            //processTcp(data, &s, &flags, false);
                             sendTcpMessage(data, s, 0x0010, NULL, 0);
                             state = 16;
+                            connected = true;
                         }
                         else if(flags & 0x0010 && flags & 0x0001 && state == PENDING_FIN_ACK_RESPONSE)
                         {
                             sendTcpMessage(data, s, 0x0010, NULL, 0);
+                            state = 16;
+                        }
+                        else if(flags & 0x0010 && flags & 0x0001 && state)
+                        {
+                            sendTcpMessage(data, s, 0x0011, NULL, 0);
                             state = 16;
                         }
                     }
