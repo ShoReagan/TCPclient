@@ -411,11 +411,9 @@ int main(void)
     etherHeader *data = (etherHeader*) buffer;
     socket s;
     uint16_t flags = 0;
-    uint8_t headerFlags;
 
     uint8_t myIp[4] = {192, 168, 1, 113};
     uint8_t sendIp[4] = {192, 168, 1, 1};
-    uint8_t sendMac[6] = {124, 194, 198, 69, 94, 248};
 
     s.localPort = 14000;
     s.remotePort = 1883;
