@@ -489,6 +489,11 @@ int main(void)
             state = SUB_ACK;
             sendMqttMessage(data, s, token1, strlen(token1), 3);
         }
+        if(state == SEND_FIN_ACK)
+        {
+            //state = SEND_FIN_ACK;
+            sendMqttMessage(data, s, token1, strlen(token1), 3);
+        }
 
 
         // Packet processing
@@ -551,7 +556,7 @@ int main(void)
                             state = SEND_ACK;
 
                         }
-                        else if(flags & 0x0010 && flags & 0x0001)
+                        else if(flags & 0x0010 && flags & 0x0001 && state != SEND_FIN_ACK)
                         {
                             //processTcp(data, &s, &flags, false);
                             sendTcpMessage(data, s, 0x0011, NULL, 0);
@@ -567,6 +572,11 @@ int main(void)
                         {
                             sendMqttMessage(data, s, NULL, 0, 4);
                             state = 16;
+                        }
+                        else if(flags & 0x0010 && flags & 0x0001 && state == SEND_FIN_ACK)
+                        {
+                            sendTcpMessage(data, s, 0x0010, NULL, 0);
+                            state = CLOSED_CONNECTION;
                         }
                     }
                 }
