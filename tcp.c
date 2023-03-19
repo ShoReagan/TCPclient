@@ -86,19 +86,21 @@ void processTcp(etherHeader *ether, socket *s, uint16_t *flags, bool getFlagsOnl
     ipHeader *ip = (ipHeader*)ether->data;
     uint8_t ipHeaderLength = ip->size * 4;
     tcpHeader *tcp = (tcpHeader*)((uint8_t*)ip + ipHeaderLength);
-    mqttHeader *mqtt = (mqttHeader*)((uint8_t*)tcp->data);
 
     *flags = ntohs(tcp->offsetFields);
+
     if(*flags & SYN && *flags & ACK)
     {
         s->acknowledgementNumber = ntohl(tcp->sequenceNumber) + 1;
+        raw = ntohl(tcp->sequenceNumber);
     }
     s->sequenceNumber = ntohl(tcp->acknowledgementNumber);
-    if(*flags & 0x0010 && *flags & 0x0008)
+    if(*flags & 0x0010 && *flags & 0x0008){
+        mqttHeader *mqtt = (mqttHeader*)((uint8_t*)tcp->data);
         s->acknowledgementNumber += (mqtt->remainingLength + 2);
-    snprintf(buffer1, 10, "%d", sizeof(tcp->data));
+    }
+    snprintf(buffer1, 10, "%d\n", s->acknowledgementNumber - raw);
     putsUart0(buffer1);
-
 }
 
 void sendTcpMessage(etherHeader *ether, socket s, uint16_t flags, uint8_t data[], uint16_t dataSize)

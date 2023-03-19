@@ -83,6 +83,8 @@
 #define SEND_CONNECT 8
 #define SEND_SUB 9
 #define SEND_PUB 10
+#define CONNECT_ACK 11
+#define SUB_ACK 12
 
 bool sendSYN = false;
 bool sendFINACK = false;
@@ -475,7 +477,7 @@ int main(void)
         {
             uint8_t buffer3[17] = {0x00, 0x04, 0x4D, 0x51, 0x54, 0x54, 0x04, 0x02, 0x00, 0x3C, 0x00, 0x05, 0x50, 0x51, 0x52, 0x53, 0x54};
             sendMqttMessage(data, s, buffer3, 7, 1);
-            state = 16;
+            state = CONNECT_ACK;
         }
         if(state == SEND_PUB)
         {
@@ -484,8 +486,8 @@ int main(void)
         }
         if(state == SEND_SUB)
         {
+            state = SUB_ACK;
             sendMqttMessage(data, s, token1, strlen(token1), 3);
-            state = 16;
         }
 
 
@@ -541,23 +543,23 @@ int main(void)
                     // Handle TCP datagram
                     if (isTcp(data))
                     {
-                        processTcp(data, &s, &flags, true);
+                        processTcp(data, &s, &flags, false);
                         if(flags & 0x0010 && flags & 0x0002) //syn + ack
                         {
-                            processTcp(data, &s, &flags, false);
+                            //processTcp(data, &s, &flags, false);
                             sendTcpMessage(data, s, 0x0010, NULL, 0);
                             state = SEND_ACK;
 
                         }
                         else if(flags & 0x0010 && flags & 0x0001)
                         {
-                            processTcp(data, &s, &flags, false);
+                            //processTcp(data, &s, &flags, false);
                             sendTcpMessage(data, s, 0x0011, NULL, 0);
                             state = CLOSED_CONNECTION;
                         }
-                        else if(flags & 0x0010 && flags & 0x0008 && state == SEND_CONNECT)
+                        else if(flags & 0x0010 && flags & 0x0008 && (state == CONNECT_ACK || state == SUB_ACK))
                         {
-                            processTcp(data, &s, &flags, false);
+                            //processTcp(data, &s, &flags, false);
                             sendTcpMessage(data, s, 0x0010, NULL, 0);
                             state = 16;
                         }
