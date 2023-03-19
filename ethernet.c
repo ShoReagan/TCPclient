@@ -319,7 +319,7 @@ void processShell()
             if (strcmp(token, "unsubscribe") == 0)
             {
                 strcpy(token1, strtok(NULL, " "));
-                state = SEND_SUB;
+                state = SEND_UNSUB;
             }
             if (strcmp(token, "sendSYN") == 0)
             {
@@ -504,7 +504,7 @@ int main(void)
         }
         if(state == SEND_UNSUB)
         {
-            state = SUB_ACK;
+            state = 16;
             sendMqttMessage(data, s, token1, strlen(token1), 4);
         }
         if(state == SEND_DISCONNECT)

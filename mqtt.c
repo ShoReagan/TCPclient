@@ -139,7 +139,7 @@ void sendMqttMessage(etherHeader *ether, socket s, uint8_t str[], uint8_t topicL
     }
     else if(type == UNSUBSCRIBE)
     {
-        mqtt->controlHeader = 0x42;
+        mqtt->controlHeader = 0xA2;
         mqtt->remainingLength = 4 + topicLen;
 
         copyData1[0] = 0;
